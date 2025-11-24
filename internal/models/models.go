@@ -16,6 +16,10 @@ type User struct {
 	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
 }
 
+func (u *User) DisplayName() string {
+	return u.Email
+}
+
 // Teacher represents a teacher in the system
 type Teacher struct {
 	ID                   uuid.UUID  `json:"id" db:"id"`
@@ -252,8 +256,8 @@ type ClassInput struct {
 
 // LoginRequest represents the login request body
 type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=6"`
 }
 
 // LoginResponse represents the login response body
