@@ -31,14 +31,17 @@ func main() {
 	// === Repositories ===
 	authRepo := repositories.NewAuthRepository(db)
 	classroomRepo := repositories.NewClassroomRepository(db)
+	subjectRepo := repositories.NewSubjectRepository(db)
 
 	// === Services ===
 	authService := services.NewAuthService(authRepo, db, cfg.JWTSecret)
 	classroomService := services.NewClassroomService(classroomRepo)
+	subjectService := services.NewSubjectService(subjectRepo)
 
 	// === Handlers ===
 	authHandler := handlers.NewAuthHandler(authService)
 	classroomHandler := handlers.NewClassroomHandler(classroomService)
+	subjectHandler := handlers.NewSubjectHandler(subjectService)
 
 	// ========== Gin router ==========
 	router := gin.Default()
@@ -59,6 +62,12 @@ func main() {
 	classrooms.GET("", classroomHandler.GetAll)
 	classrooms.POST("", classroomHandler.Create)
 	classrooms.DELETE("/:id", classroomHandler.Delete)
+
+	// ----- SUBJECTS -----
+	subjects := protected.Group("/subjects")
+	subjects.GET("", subjectHandler.GetAll)
+	subjects.POST("", subjectHandler.Create)
+	subjects.DELETE("/:id", subjectHandler.Delete)
 
 	router.Run(":8080")
 	slog.Info("Server started on port 8080")
