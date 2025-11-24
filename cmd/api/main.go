@@ -7,6 +7,7 @@ import (
 	"github.com/nikomkinds/SchoolSchedule/internal/repositories"
 	"github.com/nikomkinds/SchoolSchedule/internal/repositories/postgres"
 	"github.com/nikomkinds/SchoolSchedule/internal/services"
+	"github.com/nikomkinds/SchoolSchedule/internal/utils"
 	"log/slog"
 )
 
@@ -49,8 +50,12 @@ func main() {
 	auth.POST("/login", authHandler.Login)
 	auth.POST("/refresh", authHandler.Refresh)
 
+	// ----- PROTECTED GROUPS -----
+	protected := api.Group("/")
+	protected.Use(utils.AuthMiddleware(cfg.JWTSecret))
+
 	// ----- CLASSROOMS -----
-	classrooms := api.Group("/classrooms")
+	classrooms := protected.Group("/classrooms")
 	classrooms.GET("", classroomHandler.GetAll)
 	classrooms.POST("", classroomHandler.Create)
 	classrooms.DELETE("/:id", classroomHandler.Delete)
