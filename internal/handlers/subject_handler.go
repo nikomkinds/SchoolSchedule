@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/nikomkinds/SchoolSchedule/internal/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -16,10 +17,6 @@ func NewSubjectHandler(service services.SubjectService) *SubjectHandler {
 	return &SubjectHandler{service: service}
 }
 
-type createSubjectRequest struct {
-	Name string `json:"name" binding:"required"`
-}
-
 func (h *SubjectHandler) GetAll(c *gin.Context) {
 	subjects, err := h.service.GetAll()
 	if err != nil {
@@ -27,11 +24,21 @@ func (h *SubjectHandler) GetAll(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, subjects)
+	var data []models.CreateSubjectResponse
+	for _, subject := range subjects {
+		data = append(data, models.CreateSubjectResponse{
+			ID:   subject.ID,
+			Name: subject.Name,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": data,
+	})
 }
 
 func (h *SubjectHandler) Create(c *gin.Context) {
-	var req createSubjectRequest
+	var req models.CreateSubjectRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payload"})
@@ -44,7 +51,12 @@ func (h *SubjectHandler) Create(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, subject)
+	resp := models.CreateSubjectResponse{
+		ID:   subject.ID,
+		Name: subject.Name,
+	}
+
+	c.JSON(http.StatusCreated, resp)
 }
 
 func (h *SubjectHandler) Delete(c *gin.Context) {
