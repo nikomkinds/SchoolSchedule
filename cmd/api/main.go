@@ -27,23 +27,33 @@ func main() {
 	defer db.Close()
 	slog.Info("Connect to database")
 
-	// ========== Repository layer ==========
+	// === Repositories ===
 	authRepo := repositories.NewAuthRepository(db)
+	classroomRepo := repositories.NewClassroomRepository(db)
 
-	// ========== Service layer ==========
+	// === Services ===
 	authService := services.NewAuthService(authRepo, db, cfg.JWTSecret)
+	classroomService := services.NewClassroomService(classroomRepo)
 
-	// ========== Handler layer ==========
+	// === Handlers ===
 	authHandler := handlers.NewAuthHandler(authService)
+	classroomHandler := handlers.NewClassroomHandler(classroomService)
 
 	// ========== Gin router ==========
 	router := gin.Default()
 
 	api := router.Group("/api")
 
+	// ----- AUTH -----
 	auth := api.Group("/auth")
 	auth.POST("/login", authHandler.Login)
 	auth.POST("/refresh", authHandler.Refresh)
+
+	// ----- CLASSROOMS -----
+	classrooms := api.Group("/classrooms")
+	classrooms.GET("", classroomHandler.GetAll)
+	classrooms.POST("", classroomHandler.Create)
+	classrooms.DELETE("/:id", classroomHandler.Delete)
 
 	router.Run(":8080")
 	slog.Info("Server started on port 8080")
