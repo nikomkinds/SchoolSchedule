@@ -332,3 +332,14 @@ type CreateClassroomResponse struct {
 	ID   uuid.UUID `json:"id"`
 	Name string    `json:"name"`
 }
+
+// CreateSubjectRequest represents the request body for subject create
+type CreateSubjectRequest struct {
+	Name string `json:"name"`
+}
+
+// CreateSubjectResponse represents the response for subject create
+type CreateSubjectResponse struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}

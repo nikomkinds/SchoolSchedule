@@ -1,17 +1,17 @@
 package repositories
 
 import (
-	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/nikomkinds/SchoolSchedule/internal/models"
 )
 
 type SubjectRepository interface {
-	GetAll(ctx context.Context) ([]*models.Subject, error)
-	Create(ctx context.Context, name string) (*models.Subject, error)
-	Delete(ctx context.Context, id uuid.UUID) error
+	GetAll() ([]models.Subject, error)
+	Create(name string) (models.Subject, error)
+	Delete(id uuid.UUID) error
 }
 
 type subjectRepository struct {
@@ -22,52 +22,49 @@ func NewSubjectRepository(db *sql.DB) SubjectRepository {
 	return &subjectRepository{db: db}
 }
 
-func (r *subjectRepository) GetAll(ctx context.Context) ([]*models.Subject, error) {
-	const query = `
-		SELECT id, name
-		FROM subjects
-		ORDER BY name
-	`
-
-	rows, err := r.db.QueryContext(ctx, query)
+func (r *subjectRepository) GetAll() ([]models.Subject, error) {
+	rows, err := r.db.Query(`SELECT id, name FROM subjects ORDER BY name`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	list := make([]*models.Subject, 0)
+	var subjects []models.Subject
+
 	for rows.Next() {
 		var s models.Subject
 		if err := rows.Scan(&s.ID, &s.Name); err != nil {
 			return nil, err
 		}
-		list = append(list, &s)
+		subjects = append(subjects, s)
 	}
 
-	return list, nil
+	return subjects, nil
 }
 
-func (r *subjectRepository) Create(ctx context.Context, name string) (*models.Subject, error) {
-	const query = `
-		INSERT INTO subjects (name)
-		VALUES ($1)
-		RETURNING id, name
-	`
-
+func (r *subjectRepository) Create(name string) (models.Subject, error) {
 	var s models.Subject
-	err := r.db.QueryRowContext(ctx, query, name).Scan(&s.ID, &s.Name)
-	if err != nil {
-		return nil, err
-	}
 
-	return &s, nil
+	err := r.db.QueryRow(
+		`INSERT INTO subjects (name) 
+         VALUES ($1) 
+         RETURNING id, name`,
+		name,
+	).Scan(&s.ID, &s.Name)
+
+	return s, err
 }
 
-func (r *subjectRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	const query = `
-		DELETE FROM subjects
-		WHERE id = $1
-	`
-	_, err := r.db.ExecContext(ctx, query, id)
-	return err
+func (r *subjectRepository) Delete(id uuid.UUID) error {
+	res, err := r.db.Exec(`DELETE FROM subjects WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	affected, _ := res.RowsAffected()
+	if affected == 0 {
+		return errors.New("subject not found")
+	}
+
+	return nil
 }
