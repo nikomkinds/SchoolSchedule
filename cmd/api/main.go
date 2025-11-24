@@ -43,6 +43,7 @@ func main() {
 
 	auth := api.Group("/auth")
 	auth.POST("/login", authHandler.Login)
+	auth.POST("/refresh", authHandler.Refresh)
 
 	router.Run(":8080")
 	slog.Info("Server started on port 8080")

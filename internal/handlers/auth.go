@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/nikomkinds/SchoolSchedule/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -55,5 +56,45 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	)
 
 	// Return JSON (frontend also stores tokens in cookies)
+	c.JSON(http.StatusOK, resp)
+}
+
+// Refresh implements ep: POST /auth/refresh
+func (h *AuthHandler) Refresh(c *gin.Context) {
+	refreshToken, err := utils.ExtractRefreshTokenFromHeader(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or missing refresh token"})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	resp, err := h.authService.Refresh(ctx, refreshToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refresh token"})
+		return
+	}
+
+	// === Update cookies ===
+	c.SetCookie(
+		"access-token",
+		resp.AccessToken,
+		60*10,
+		"/",
+		"",
+		false,
+		true,
+	)
+
+	c.SetCookie(
+		"refresh-token",
+		resp.RefreshToken,
+		60*60*24*7,
+		"/",
+		"",
+		false,
+		true,
+	)
+
 	c.JSON(http.StatusOK, resp)
 }
