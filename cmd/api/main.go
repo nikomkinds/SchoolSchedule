@@ -1,8 +1,12 @@
 package main
 
 import (
+	"github.com/gin-gonic/gin"
 	"github.com/nikomkinds/SchoolSchedule/internal/config"
+	"github.com/nikomkinds/SchoolSchedule/internal/handlers"
+	"github.com/nikomkinds/SchoolSchedule/internal/repositories"
 	"github.com/nikomkinds/SchoolSchedule/internal/repositories/postgres"
+	"github.com/nikomkinds/SchoolSchedule/internal/services"
 	"log/slog"
 )
 
@@ -23,4 +27,23 @@ func main() {
 	defer db.Close()
 	slog.Info("Connect to database")
 
+	// ========== Repository layer ==========
+	authRepo := repositories.NewAuthRepository(db)
+
+	// ========== Service layer ==========
+	authService := services.NewAuthService(authRepo, db, cfg.JWTSecret)
+
+	// ========== Handler layer ==========
+	authHandler := handlers.NewAuthHandler(authService)
+
+	// ========== Gin router ==========
+	router := gin.Default()
+
+	api := router.Group("/api")
+
+	auth := api.Group("/auth")
+	auth.POST("/login", authHandler.Login)
+
+	router.Run(":8080")
+	slog.Info("Server started on port 8080")
 }
