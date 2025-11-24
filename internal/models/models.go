@@ -321,3 +321,14 @@ type BulkUpdateResponse struct {
 	Message string `json:"message"`
 	Updated int    `json:"updated"`
 }
+
+// CreateClassroomRequest represents the request body for classroom create
+type CreateClassroomRequest struct {
+	Name string `json:"name"`
+}
+
+// CreateClassroomResponse represents the response for classroom create
+type CreateClassroomResponse struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
