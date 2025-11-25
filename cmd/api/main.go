@@ -33,18 +33,21 @@ func main() {
 	classroomRepo := repositories.NewClassroomRepository(db)
 	subjectRepo := repositories.NewSubjectRepository(db)
 	teacherRepo := repositories.NewTeacherRepository(db)
+	classRepo := repositories.NewClassRepository(db)
 
 	// === Services ===
 	authService := services.NewAuthService(authRepo, db, cfg.JWTSecret)
 	classroomService := services.NewClassroomService(classroomRepo)
 	subjectService := services.NewSubjectService(subjectRepo)
 	teacherService := services.NewTeacherService(teacherRepo)
+	classService := services.NewClassService(classRepo)
 
 	// === Handlers ===
 	authHandler := handlers.NewAuthHandler(authService)
 	classroomHandler := handlers.NewClassroomHandler(classroomService)
 	subjectHandler := handlers.NewSubjectHandler(subjectService)
 	teacherHandler := handlers.NewTeacherHandler(teacherService)
+	classHandler := handlers.NewClassHandler(classService)
 
 	// ========== Gin router ==========
 	router := gin.Default()
@@ -79,6 +82,13 @@ func main() {
 	users.POST("/Teachers", teacherHandler.Create)
 	users.DELETE("/Teachers/:id", teacherHandler.Delete)
 	users.PATCH("/Teachers/bulk", teacherHandler.BulkUpdate)
+
+	// ----- CLASSES -----
+	classes := protected.Group("/classes")
+	classes.GET("", classHandler.GetAll)
+	classes.POST("", classHandler.Create)
+	classes.DELETE("/:id", classHandler.Delete)
+	classes.PUT("/bulk", classHandler.BulkUpdate)
 
 	router.Run(":8080")
 	slog.Info("Server started on port 8080")
