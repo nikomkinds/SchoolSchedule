@@ -34,6 +34,7 @@ func main() {
 	subjectRepo := repositories.NewSubjectRepository(db)
 	teacherRepo := repositories.NewTeacherRepository(db)
 	classRepo := repositories.NewClassRepository(db)
+	scheduleRepo := repositories.NewScheduleRepository(db)
 
 	// === Services ===
 	authService := services.NewAuthService(authRepo, db, cfg.JWTSecret)
@@ -41,6 +42,7 @@ func main() {
 	subjectService := services.NewSubjectService(subjectRepo)
 	teacherService := services.NewTeacherService(teacherRepo)
 	classService := services.NewClassService(classRepo)
+	scheduleService := services.NewScheduleService(scheduleRepo)
 
 	// === Handlers ===
 	authHandler := handlers.NewAuthHandler(authService)
@@ -48,6 +50,7 @@ func main() {
 	subjectHandler := handlers.NewSubjectHandler(subjectService)
 	teacherHandler := handlers.NewTeacherHandler(teacherService)
 	classHandler := handlers.NewClassHandler(classService)
+	scheduleHandler := handlers.NewScheduleHandler(scheduleService)
 
 	// ========== Gin router ==========
 	router := gin.Default()
@@ -89,6 +92,15 @@ func main() {
 	classes.POST("", classHandler.Create)
 	classes.DELETE("/:id", classHandler.Delete)
 	classes.PUT("/bulk", classHandler.BulkUpdate)
+
+	// ----- SCHEDULES -----
+	schedule := protected.Group("/schedule")
+	schedule.GET("", scheduleHandler.GetScheduleForTeacher)
+	schedule.PUT("", scheduleHandler.UpdateScheduleForTeacher)
+	schedule.POST("/generate", scheduleHandler.GenerateSchedule)
+	schedule.GET("/:id", scheduleHandler.GetScheduleByID)
+	schedule.POST("", scheduleHandler.CreateSchedule)
+	schedule.DELETE("/:id", scheduleHandler.DeleteSchedule)
 
 	router.Run(":8080")
 	slog.Info("Server started on port 8080")
