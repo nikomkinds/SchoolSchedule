@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -43,7 +44,7 @@ func (h *ClassHandler) Create(c *gin.Context) {
 	ctx := c.Request.Context()
 	newClass, err := h.service.Create(ctx, req.Name)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create class"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Errorf("failed to create class: %w", err)})
 		return
 	}
 
