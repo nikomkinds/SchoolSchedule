@@ -3,8 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
-	"github.com/joho/godotenv"
-	"github.com/spf13/viper"
+	"os"
 )
 
 // Config structure describes connection params
@@ -23,27 +22,19 @@ type Config struct {
 // LoadConfig function gets params from the environment
 func LoadConfig() (*Config, error) {
 
-	_ = godotenv.Load(".env")
-
-	viper.AutomaticEnv()
-
-	viper.BindEnv("DB_HOST")
-	viper.BindEnv("DB_PORT")
-	viper.BindEnv("DB_USER")
-	viper.BindEnv("DB_PASSWORD")
-	viper.BindEnv("DB_NAME")
-	viper.BindEnv("DB_SSLMODE")
-	viper.BindEnv("SERVER_HOST")
-	viper.BindEnv("SERVER_PORT")
-	viper.BindEnv("JWT_SECRET")
-
-	var cfg Config
-	if err := viper.Unmarshal(&cfg); err != nil {
-		return nil, fmt.Errorf("unable to unmarshal env config: %w", err)
+	cfg := Config{
+		DBHost:    os.Getenv("DB_HOST"),
+		DBPort:    os.Getenv("DB_PORT"),
+		User:      os.Getenv("DB_USER"),
+		Password:  os.Getenv("DB_PASSWORD"),
+		DBName:    os.Getenv("DB_NAME"),
+		SSLMode:   os.Getenv("DB_SSLMODE"),
+		ServHost:  os.Getenv("SERVER_HOST"),
+		ServPort:  os.Getenv("SERVER_PORT"),
+		JWTSecret: os.Getenv("JWT_SECRET"),
 	}
 
-	val := validator.New()
-	if err := val.Struct(cfg); err != nil {
+	if err := validator.New().Struct(cfg); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
 
