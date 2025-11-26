@@ -30,7 +30,7 @@ func (h *ScheduleHandler) GetScheduleForTeacher(c *gin.Context) {
 	ctx := c.Request.Context()
 	schedule, err := h.service.GetScheduleForTeacher(ctx, teacherID.(uuid.UUID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load schedule"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load schedule", "details": err.Error()})
 		return
 	}
 
@@ -53,7 +53,7 @@ func (h *ScheduleHandler) UpdateScheduleForTeacher(c *gin.Context) {
 	// Find the active schedule ID to update
 	allSchedules, err := h.service.GetAllSchedules(ctx)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to identify schedule to update"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to identify schedule to update", "details": err.Error()})
 		return
 	}
 	var activeScheduleID uuid.UUID
@@ -72,7 +72,7 @@ func (h *ScheduleHandler) UpdateScheduleForTeacher(c *gin.Context) {
 		}
 		created, err := h.service.CreateSchedule(ctx, newSchedule, nil)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create initial schedule"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create initial schedule", "details": err.Error()})
 			return
 		}
 		activeScheduleID = created.ID
@@ -81,7 +81,7 @@ func (h *ScheduleHandler) UpdateScheduleForTeacher(c *gin.Context) {
 	err = h.service.UpdateSchedule(ctx, activeScheduleID, nil, payload.Data) // nil name means don't update name
 	if err != nil {
 		// Check for specific conflict errors if needed, based on repo logic
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update schedule"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update schedule", "details": err.Error()})
 		return
 	}
 
@@ -127,7 +127,7 @@ func (h *ScheduleHandler) GetScheduleByID(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "schedule not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load schedule"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load schedule", "details": err.Error()})
 		return
 	}
 
@@ -153,7 +153,7 @@ func (h *ScheduleHandler) CreateSchedule(c *gin.Context) {
 	}
 	created, err := h.service.CreateSchedule(ctx, newSchedule, req.ScheduleSlots)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create schedule"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create schedule", "details": err.Error()})
 		return
 	}
 
@@ -175,7 +175,7 @@ func (h *ScheduleHandler) DeleteSchedule(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "schedule not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete schedule"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete schedule", "details": err.Error()})
 		return
 	}
 	c.Status(http.StatusNoContent)
