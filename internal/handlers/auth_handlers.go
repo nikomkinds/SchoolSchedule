@@ -38,7 +38,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	c.SetCookie(
 		"access-token",
 		resp.AccessToken,
-		60*10, // 10 minutes
+		60*60, // 10 minutes (changed to 60 !!! !!! !!!)
 		"/",
 		"",
 		false,
@@ -79,7 +79,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	c.SetCookie(
 		"access-token",
 		resp.AccessToken,
-		60*10,
+		60*60,
 		"/",
 		"",
 		false,
