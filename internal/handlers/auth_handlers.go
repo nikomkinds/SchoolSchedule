@@ -41,8 +41,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		60*10, // 10 minutes
 		"/",
 		"",
-		false, // on prod -> true
-		true,  // httpOnly
+		true,
+		true,
 	)
 
 	c.SetCookie(
@@ -51,7 +51,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		60*60*24*7, // 7 days
 		"/",
 		"",
-		false,
+		true,
 		true,
 	)
 
@@ -82,7 +82,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		60*10,
 		"/",
 		"",
-		false,
+		true,
 		true,
 	)
 
@@ -92,7 +92,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		60*60*24*7,
 		"/",
 		"",
-		false,
+		true,
 		true,
 	)
 
