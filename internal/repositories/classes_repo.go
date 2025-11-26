@@ -24,7 +24,6 @@ func NewClassRepository(db *sql.DB) ClassRepository {
 }
 
 func (r *classRepository) GetAll(ctx context.Context) ([]models.Class, error) {
-	// Base classes
 	const q = `
 		SELECT c.id, c.name, t.id, t.first_name, t.last_name, t.patronymic
 		FROM classes c
@@ -43,48 +42,47 @@ func (r *classRepository) GetAll(ctx context.Context) ([]models.Class, error) {
 	for rows.Next() {
 		var c models.Class
 		var teacherID sql.NullString
-		var firstName, lastName sql.NullString
-		var patronymic sql.NullString
+		var first, last, patron sql.NullString
 
-		if err := rows.Scan(
-			&c.ID, &c.Name,
-			&teacherID, &firstName, &lastName, &patronymic,
-		); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &teacherID, &first, &last, &patron); err != nil {
 			return nil, err
 		}
 
-		// Attach homeroom teacher
 		if teacherID.Valid {
-			tid, err := uuid.Parse(teacherID.String)
-			if err == nil {
-				c.HomeroomTeacher = &models.Teacher{
-					ID:        tid,
-					FirstName: firstName.String,
-					LastName:  lastName.String,
-				}
-				if patronymic.Valid {
-					c.HomeroomTeacher.Patronymic = &patronymic.String
-				}
+			tid, _ := uuid.Parse(teacherID.String)
+			c.HomeroomTeacher = &models.Teacher{
+				ID:        tid,
+				FirstName: first.String,
+				LastName:  last.String,
+				Patronymic: func() *string {
+					if patron.Valid {
+						return &patron.String
+					}
+					return nil
+				}(),
 			}
 		}
 
-		// Load subjects
-		subjs, err := r.loadClassSubjects(ctx, c.ID)
+		// subjects
+		subjects, err := r.loadClassSubjects(ctx, c.ID)
 		if err != nil {
 			return nil, err
 		}
-		c.Subjects = subjs
+		c.Subjects = subjects
 
-		// Load groups
+		// groups
 		gr, err := r.loadClassGroups(ctx, c.ID)
 		if err != nil {
 			return nil, err
+		}
+
+		for i := range gr {
+			gr[i].Description = nil
 		}
 		c.Groups = gr
 
 		res = append(res, c)
 	}
-
 	return res, nil
 }
 

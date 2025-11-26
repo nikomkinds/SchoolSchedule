@@ -22,13 +22,14 @@ func NewClassHandler(service services.ClassService) *ClassHandler {
 // GetAll implements ep: GET /classes
 func (h *ClassHandler) GetAll(c *gin.Context) {
 	ctx := c.Request.Context()
-	result, err := h.service.GetAll(ctx)
+
+	data, err := h.service.GetAll(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load classes"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": result})
+	c.JSON(http.StatusOK, gin.H{"data": data})
 }
 
 // Create implements ep: POST /classes
