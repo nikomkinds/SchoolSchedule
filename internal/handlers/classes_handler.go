@@ -25,7 +25,8 @@ func (h *ClassHandler) GetAll(c *gin.Context) {
 
 	data, err := h.service.GetAll(ctx)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load classes"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load classes", "details": err.Error()})
+
 		return
 	}
 
@@ -50,7 +51,8 @@ func (h *ClassHandler) Create(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid class grade"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create class"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create class", "details": err.Error()})
+		
 		return
 	}
 
