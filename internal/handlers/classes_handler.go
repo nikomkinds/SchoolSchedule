@@ -1,8 +1,9 @@
 package handlers
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -44,7 +45,11 @@ func (h *ClassHandler) Create(c *gin.Context) {
 	ctx := c.Request.Context()
 	newClass, err := h.service.Create(ctx, req.Name)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create class: %s", err.Error())})
+		if errors.Is(err, strconv.ErrSyntax) || errors.Is(err, strconv.ErrRange) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid class grade"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create class"})
 		return
 	}
 

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/nikomkinds/SchoolSchedule/internal/models"
@@ -28,7 +29,13 @@ func (s *classService) GetAll(ctx context.Context) ([]models.Class, error) {
 }
 
 func (s *classService) Create(ctx context.Context, name string) (*models.Class, error) {
-	return s.repo.Create(ctx, name)
+
+	grade, err := strconv.Atoi(name[:len(name)-1])
+	if err != nil || grade > 11 || grade < 1 {
+		return nil, err
+	}
+
+	return s.repo.Create(ctx, name, grade)
 }
 
 func (s *classService) Delete(ctx context.Context, id uuid.UUID) error {

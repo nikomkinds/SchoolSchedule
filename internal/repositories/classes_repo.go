@@ -10,7 +10,7 @@ import (
 
 type ClassRepository interface {
 	GetAll(ctx context.Context) ([]models.Class, error)
-	Create(ctx context.Context, name string) (*models.Class, error)
+	Create(ctx context.Context, name string, grade int) (*models.Class, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	BulkUpdate(ctx context.Context, items []models.Class) (int, error)
 }
@@ -172,15 +172,15 @@ func (r *classRepository) loadClassGroups(ctx context.Context, classID uuid.UUID
 	return out, nil
 }
 
-func (r *classRepository) Create(ctx context.Context, name string) (*models.Class, error) {
+func (r *classRepository) Create(ctx context.Context, name string, grade int) (*models.Class, error) {
 	const q = `
-		INSERT INTO classes (name)
-		VALUES ($1)
+		INSERT INTO classes (name, grade_level)
+		VALUES ($1, $2)
 		RETURNING id
 	`
 
 	var id uuid.UUID
-	if err := r.db.QueryRowContext(ctx, q, name).Scan(&id); err != nil {
+	if err := r.db.QueryRowContext(ctx, q, name, grade).Scan(&id); err != nil {
 		return nil, err
 	}
 
