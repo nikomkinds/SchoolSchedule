@@ -63,9 +63,19 @@ func (h *ScheduleHandler) UpdateScheduleForTeacher(c *gin.Context) {
 			break
 		}
 	}
+	
+	// If no active schedule exists, create one
 	if activeScheduleID == uuid.Nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "no active schedule found to update"})
-		return
+		newSchedule := models.Schedule{
+			Name:     "Расписание 2024-2025",
+			IsActive: true,
+		}
+		created, err := h.service.CreateSchedule(ctx, newSchedule, nil)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create initial schedule"})
+			return
+		}
+		activeScheduleID = created.ID
 	}
 
 	err = h.service.UpdateSchedule(ctx, activeScheduleID, nil, payload.Data) // nil name means don't update name
