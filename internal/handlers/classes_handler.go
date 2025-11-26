@@ -44,7 +44,7 @@ func (h *ClassHandler) Create(c *gin.Context) {
 	ctx := c.Request.Context()
 	newClass, err := h.service.Create(ctx, req.Name)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Errorf("failed to create class: %w", err)})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create class: %s", err.Error())})
 		return
 	}
 
