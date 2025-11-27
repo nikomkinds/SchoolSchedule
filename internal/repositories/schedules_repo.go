@@ -35,8 +35,20 @@ func NewScheduleRepository(db *sql.DB) ScheduleRepository {
 	return &scheduleRepository{db: db}
 }
 
-// GetScheduleForTeacher loads the schedule for a specific teacher
+// GetSchedule loads the schedule for a specific teacher from the *active* named schedule
 func (r *scheduleRepository) GetSchedule(ctx context.Context, teacherID uuid.UUID) ([]models.ScheduleDay, error) {
+	// First, find the active schedule ID
+	var activeScheduleID uuid.UUID
+	err := r.db.QueryRowContext(ctx, `SELECT id FROM schedules WHERE is_active = true LIMIT 1`).Scan(&activeScheduleID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// If no active schedule exists, return empty schedule
+			return []models.ScheduleDay{}, nil
+		}
+		return nil, fmt.Errorf("failed to find active schedule: %w", err)
+	}
+
+	// Now, query lessons for this teacher within the active schedule
 	const q = `
 		SELECT 
 			ss.day_of_week,
@@ -65,11 +77,11 @@ func (r *scheduleRepository) GetSchedule(ctx context.Context, teacherID uuid.UUI
 		LEFT JOIN classrooms cr ON cr.id = lr.classroom_id
 		LEFT JOIN lesson_participant_groups lpg ON lp.id = lpg.participant_id
 		LEFT JOIN class_groups cg ON lpg.group_id = cg.id
-		WHERE t.id = $1
+		WHERE ss.schedule_id = $1 AND t.id = $2
 		ORDER BY ss.day_of_week, ss.lesson_number, sl.id, t.last_name, t.first_name, c.name, cg.name
 	`
 
-	rows, err := r.db.QueryContext(ctx, q, teacherID)
+	rows, err := r.db.QueryContext(ctx, q, activeScheduleID, teacherID)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +242,7 @@ func (r *scheduleRepository) GetSchedule(ctx context.Context, teacherID uuid.UUI
 	}
 
 	// -------- Now convert scheduleMap into []ScheduleDay --------
-	// Secondary query to detect slots
+	// Secondary query to detect slots *only within the active schedule for this teacher*
 	const lessonIDsQuery = `
 		SELECT 
 			ss.day_of_week,
@@ -239,11 +251,11 @@ func (r *scheduleRepository) GetSchedule(ctx context.Context, teacherID uuid.UUI
 		FROM schedule_slots ss
 		JOIN schedule_lessons sl ON sl.slot_id = ss.id
 		JOIN lesson_teachers lt ON lt.lesson_id = sl.id
-		WHERE lt.teacher_id = $1
+		WHERE ss.schedule_id = $1 AND lt.teacher_id = $2
 		ORDER BY ss.day_of_week, ss.lesson_number
 	`
 
-	lessonRows, err := r.db.QueryContext(ctx, lessonIDsQuery, teacherID)
+	lessonRows, err := r.db.QueryContext(ctx, lessonIDsQuery, activeScheduleID, teacherID)
 	if err != nil {
 		return nil, err
 	}
