@@ -316,22 +316,24 @@ func (r *scheduleRepository) GetSchedule(ctx context.Context, userID uuid.UUID) 
 	return result, nil
 }
 
-// Helper to convert internal day number to string
+// Helper to convert internal day number to string (uppercase for frontend)
 func dayOfWeekToString(day int) string {
 	switch day {
 	case 1:
-		return "monday"
+		return "MONDAY"
 	case 2:
-		return "tuesday"
+		return "TUESDAY"
 	case 3:
-		return "wednesday"
+		return "WEDNESDAY"
 	case 4:
-		return "thursday"
+		return "THURSDAY"
 	case 5:
-		return "friday"
-	// Add more if Saturday/Sunday are needed
+		return "FRIDAY"
+	case 6:
+		return "SATURDAY"
+	// Add more if Sunday is needed
 	default:
-		return "unknown"
+		return "UNKNOWN"
 	}
 }
 
