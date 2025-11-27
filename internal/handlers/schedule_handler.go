@@ -3,7 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"net/http"
-	"strings"
+	"strings" // Добавлен импорт strings
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -43,10 +43,11 @@ func (h *ScheduleHandler) UpdateScheduleForTeacher(c *gin.Context) {
 		Data []models.ScheduleSlotInput `json:"data"`
 	}
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload structure, expected { data: [...] }"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload structure, expected {  [...] }"})
 		return
 	}
 
+	// Карта для сопоставления дня недели из строки в число
 	dayMap := map[string]int{
 		"monday":    1,
 		"tuesday":   2,
@@ -54,9 +55,13 @@ func (h *ScheduleHandler) UpdateScheduleForTeacher(c *gin.Context) {
 		"thursday":  4,
 		"friday":    5,
 		"saturday":  6,
+		// "sunday": 7, // Если нужно, добавьте
 	}
 
+	// Проходим по всем слотам в payload и устанавливаем DayOfWeekInt
+	// И приводим DayOfWeek к нижнему регистру для совместимости с репозиторием
 	for i := range payload.Data {
+		// Приводим строку к нижнему регистру для сопоставления
 		day := strings.ToLower(payload.Data[i].DayOfWeek)
 
 		val, ok := dayMap[day]
@@ -69,7 +74,10 @@ func (h *ScheduleHandler) UpdateScheduleForTeacher(c *gin.Context) {
 			return
 		}
 
+		// Устанавливаем внутреннее числовое значение
 		payload.Data[i].DayOfWeekInt = val
+		// Приводим строковое поле к нижнему регистру для передачи в репозиторий
+		payload.Data[i].DayOfWeek = day
 	}
 
 	ctx := c.Request.Context()
@@ -98,6 +106,7 @@ func (h *ScheduleHandler) UpdateScheduleForTeacher(c *gin.Context) {
 		activeScheduleID = created.ID
 	}
 
+	// Передаем в сервис уже обновленный payload.Data, где DayOfWeekInt заполнен и DayOfWeek в нижнем регистре
 	err = h.service.UpdateSchedule(ctx, activeScheduleID, nil, payload.Data)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update schedule", "details": err.Error()})

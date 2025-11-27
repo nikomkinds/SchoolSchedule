@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/nikomkinds/SchoolSchedule/internal/models"
@@ -835,9 +836,10 @@ func (r *scheduleRepository) CreateSchedule(ctx context.Context, schedule models
 	return createdSchedule, nil
 }
 
-// stringToDayOfWeek converts string day to internal integer (1-5)
+// stringToDayOfWeek converts string day to internal integer (1-6), case-insensitive
 func stringToDayOfWeek(day string) int {
-	switch day {
+	lowerDay := strings.ToLower(day)
+	switch lowerDay {
 	case "monday":
 		return 1
 	case "tuesday":
@@ -848,9 +850,10 @@ func stringToDayOfWeek(day string) int {
 		return 4
 	case "friday":
 		return 5
-	// Add more if Saturday/Sunday are needed
+	case "saturday":
+		return 6
 	default:
-		return 0 // Invalid
+		return 0
 	}
 }
 
@@ -882,6 +885,7 @@ func (r *scheduleRepository) UpdateSchedule(ctx context.Context, scheduleID uuid
 
 	// 3. Insert new slots and lessons (same logic as Create)
 	for _, slotInput := range slots {
+		// Use stringToDayOfWeek which is now case-insensitive
 		dayNum := stringToDayOfWeek(slotInput.DayOfWeek)
 		if dayNum == 0 {
 			err = fmt.Errorf("invalid day of week: %s", slotInput.DayOfWeek)
