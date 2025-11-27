@@ -9,14 +9,14 @@ import (
 )
 
 type ScheduleService interface {
-	// GetScheduleForTeacher loads the schedule for a specific teacher
-	GetSchedule(ctx context.Context, teacherID uuid.UUID) ([]models.ScheduleDay, error)
+	// GetSchedule loads the active schedule for a specific user
+	GetSchedule(ctx context.Context, userID uuid.UUID) ([]models.ScheduleDay, error)
 	// GetScheduleByID loads a specific named schedule by its ID
 	GetScheduleByID(ctx context.Context, scheduleID uuid.UUID) (*models.Schedule, error)
-	// GetAllSchedules loads all named schedules
-	GetAllSchedules(ctx context.Context) ([]models.Schedule, error)
+	// GetAllSchedules loads all schedules for a specific user
+	GetAllSchedules(ctx context.Context, userID uuid.UUID) ([]models.Schedule, error)
 	// CreateSchedule creates a new named schedule
-	CreateSchedule(ctx context.Context, schedule models.Schedule, slots []models.ScheduleSlotInput) (*models.Schedule, error)
+	CreateSchedule(ctx context.Context, userID uuid.UUID, schedule models.Schedule, slots []models.ScheduleSlotInput) (*models.Schedule, error)
 	// UpdateSchedule updates an existing schedule
 	UpdateSchedule(ctx context.Context, scheduleID uuid.UUID, name *string, slots []models.ScheduleSlotInput) error
 	// DeleteSchedule deletes a schedule
@@ -33,20 +33,20 @@ func NewScheduleService(repo repositories.ScheduleRepository) ScheduleService {
 	return &scheduleService{repo: repo}
 }
 
-func (s *scheduleService) GetSchedule(ctx context.Context, teacherID uuid.UUID) ([]models.ScheduleDay, error) {
-	return s.repo.GetSchedule(ctx, teacherID)
+func (s *scheduleService) GetSchedule(ctx context.Context, userID uuid.UUID) ([]models.ScheduleDay, error) {
+	return s.repo.GetSchedule(ctx, userID)
 }
 
 func (s *scheduleService) GetScheduleByID(ctx context.Context, scheduleID uuid.UUID) (*models.Schedule, error) {
 	return s.repo.GetScheduleByID(ctx, scheduleID)
 }
 
-func (s *scheduleService) GetAllSchedules(ctx context.Context) ([]models.Schedule, error) {
-	return s.repo.GetAllSchedules(ctx)
+func (s *scheduleService) GetAllSchedules(ctx context.Context, userID uuid.UUID) ([]models.Schedule, error) {
+	return s.repo.GetAllSchedules(ctx, userID)
 }
 
-func (s *scheduleService) CreateSchedule(ctx context.Context, schedule models.Schedule, slots []models.ScheduleSlotInput) (*models.Schedule, error) {
-	return s.repo.CreateSchedule(ctx, schedule, slots)
+func (s *scheduleService) CreateSchedule(ctx context.Context, userID uuid.UUID, schedule models.Schedule, slots []models.ScheduleSlotInput) (*models.Schedule, error) {
+	return s.repo.CreateSchedule(ctx, userID, schedule, slots)
 }
 
 func (s *scheduleService) UpdateSchedule(ctx context.Context, scheduleID uuid.UUID, name *string, slots []models.ScheduleSlotInput) error {

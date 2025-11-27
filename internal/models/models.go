@@ -132,12 +132,13 @@ type TeacherWorkload struct {
 
 // Schedule represents a named schedule (e.g., "Main Schedule", "Winter Schedule")
 type Schedule struct {
-	ID           uuid.UUID `json:"id" db:"id"`
-	Name         string    `json:"name" db:"name"`
-	AcademicYear *string   `json:"academicYear,omitempty" db:"academic_year"`
-	IsActive     bool      `json:"isActive" db:"is_active"`
-	CreatedAt    time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
+	ID           uuid.UUID  `json:"id" db:"id"`
+	UserID       *uuid.UUID `json:"userId,omitempty" db:"user_id"` // Owner of the schedule
+	Name         string     `json:"name" db:"name"`
+	AcademicYear *string    `json:"academicYear,omitempty" db:"academic_year"`
+	IsActive     bool       `json:"isActive" db:"is_active"` // Active schedule for this user
+	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // ScheduleSlot represents a time slot in the schedule (day + lesson number)

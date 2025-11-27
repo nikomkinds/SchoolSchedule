@@ -11,14 +11,14 @@ import (
 )
 
 type ScheduleRepository interface {
-	// GetScheduleForTeacher loads the schedule for a specific teacher
-	GetSchedule(ctx context.Context, teacherID uuid.UUID) ([]models.ScheduleDay, error)
+	// GetSchedule loads the active schedule for a specific user
+	GetSchedule(ctx context.Context, userID uuid.UUID) ([]models.ScheduleDay, error)
 	// GetScheduleByID loads a specific named schedule by its ID
 	GetScheduleByID(ctx context.Context, scheduleID uuid.UUID) (*models.Schedule, error)
-	// GetAllSchedules loads all named schedules
-	GetAllSchedules(ctx context.Context) ([]models.Schedule, error)
+	// GetAllSchedules loads all schedules for a specific user
+	GetAllSchedules(ctx context.Context, userID uuid.UUID) ([]models.Schedule, error)
 	// CreateSchedule creates a new named schedule and its associated slots/lessons
-	CreateSchedule(ctx context.Context, schedule models.Schedule, slots []models.ScheduleSlotInput) (*models.Schedule, error)
+	CreateSchedule(ctx context.Context, userID uuid.UUID, schedule models.Schedule, slots []models.ScheduleSlotInput) (*models.Schedule, error)
 	// UpdateSchedule updates the main schedule table and replaces its slots/lessons
 	UpdateSchedule(ctx context.Context, scheduleID uuid.UUID, name *string, slots []models.ScheduleSlotInput) error
 	// DeleteSchedule deletes a schedule and all its associated data
@@ -35,11 +35,11 @@ func NewScheduleRepository(db *sql.DB) ScheduleRepository {
 	return &scheduleRepository{db: db}
 }
 
-// GetSchedule loads the schedule for a specific teacher from the *active* named schedule
-func (r *scheduleRepository) GetSchedule(ctx context.Context, teacherID uuid.UUID) ([]models.ScheduleDay, error) {
-	// First, find the active schedule ID
+// GetSchedule loads the complete schedule from the *active* named schedule for a specific user
+func (r *scheduleRepository) GetSchedule(ctx context.Context, userID uuid.UUID) ([]models.ScheduleDay, error) {
+	// First, find the active schedule ID for this user
 	var activeScheduleID uuid.UUID
-	err := r.db.QueryRowContext(ctx, `SELECT id FROM schedules WHERE is_active = true LIMIT 1`).Scan(&activeScheduleID)
+	err := r.db.QueryRowContext(ctx, `SELECT id FROM schedules WHERE user_id = $1 AND is_active = true LIMIT 1`, userID).Scan(&activeScheduleID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// If no active schedule exists, return empty schedule
@@ -48,7 +48,7 @@ func (r *scheduleRepository) GetSchedule(ctx context.Context, teacherID uuid.UUI
 		return nil, fmt.Errorf("failed to find active schedule: %w", err)
 	}
 
-	// Now, query lessons for this teacher within the active schedule
+	// Now, query all lessons within the active schedule (not filtered by teacher)
 	const q = `
 		SELECT 
 			ss.day_of_week,
@@ -77,11 +77,11 @@ func (r *scheduleRepository) GetSchedule(ctx context.Context, teacherID uuid.UUI
 		LEFT JOIN classrooms cr ON cr.id = lr.classroom_id
 		LEFT JOIN lesson_participant_groups lpg ON lp.id = lpg.participant_id
 		LEFT JOIN class_groups cg ON lpg.group_id = cg.id
-		WHERE ss.schedule_id = $1 AND t.id = $2
+		WHERE ss.schedule_id = $1
 		ORDER BY ss.day_of_week, ss.lesson_number, sl.id, t.last_name, t.first_name, c.name, cg.name
 	`
 
-	rows, err := r.db.QueryContext(ctx, q, activeScheduleID, teacherID)
+	rows, err := r.db.QueryContext(ctx, q, activeScheduleID)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +242,7 @@ func (r *scheduleRepository) GetSchedule(ctx context.Context, teacherID uuid.UUI
 	}
 
 	// -------- Now convert scheduleMap into []ScheduleDay --------
-	// Secondary query to detect slots *only within the active schedule for this teacher*
+	// Secondary query to detect all slots within the active schedule
 	const lessonIDsQuery = `
 		SELECT 
 			ss.day_of_week,
@@ -250,12 +250,11 @@ func (r *scheduleRepository) GetSchedule(ctx context.Context, teacherID uuid.UUI
 			sl.id
 		FROM schedule_slots ss
 		JOIN schedule_lessons sl ON sl.slot_id = ss.id
-		JOIN lesson_teachers lt ON lt.lesson_id = sl.id
-		WHERE ss.schedule_id = $1 AND lt.teacher_id = $2
+		WHERE ss.schedule_id = $1
 		ORDER BY ss.day_of_week, ss.lesson_number
 	`
 
-	lessonRows, err := r.db.QueryContext(ctx, lessonIDsQuery, activeScheduleID, teacherID)
+	lessonRows, err := r.db.QueryContext(ctx, lessonIDsQuery, activeScheduleID)
 	if err != nil {
 		return nil, err
 	}
@@ -670,12 +669,12 @@ func (r *scheduleRepository) GetScheduleByID(ctx context.Context, scheduleID uui
 	// For this endpoint, we might just return the schedule header info
 	// and let the frontend call GET /schedule for the actual data if needed.
 	// Or load slots/lessons. Let's load the header for now as per spec.
-	const q = `SELECT id, name, academic_year, is_active, created_at, updated_at FROM schedules WHERE id = $1`
+	const q = `SELECT id, user_id, name, academic_year, is_active, created_at, updated_at FROM schedules WHERE id = $1`
 	row := r.db.QueryRowContext(ctx, q, scheduleID)
 
 	var s models.Schedule
 	var academicYear sql.NullString
-	err := row.Scan(&s.ID, &s.Name, &academicYear, &s.IsActive, &s.CreatedAt, &s.UpdatedAt)
+	err := row.Scan(&s.ID, &s.UserID, &s.Name, &academicYear, &s.IsActive, &s.CreatedAt, &s.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -689,11 +688,11 @@ func (r *scheduleRepository) GetScheduleByID(ctx context.Context, scheduleID uui
 	return &s, nil
 }
 
-// GetAllSchedules loads all named schedules
-func (r *scheduleRepository) GetAllSchedules(ctx context.Context) ([]models.Schedule, error) {
-	const q = `SELECT id, name, academic_year, is_active, created_at, updated_at FROM schedules ORDER BY name`
+// GetAllSchedules loads all schedules for a specific user
+func (r *scheduleRepository) GetAllSchedules(ctx context.Context, userID uuid.UUID) ([]models.Schedule, error) {
+	const q = `SELECT id, user_id, name, academic_year, is_active, created_at, updated_at FROM schedules WHERE user_id = $1 ORDER BY name`
 
-	rows, err := r.db.QueryContext(ctx, q)
+	rows, err := r.db.QueryContext(ctx, q, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -703,7 +702,7 @@ func (r *scheduleRepository) GetAllSchedules(ctx context.Context) ([]models.Sche
 	for rows.Next() {
 		var s models.Schedule
 		var academicYear sql.NullString
-		if err := rows.Scan(&s.ID, &s.Name, &academicYear, &s.IsActive, &s.CreatedAt, &s.UpdatedAt); err != nil {
+		if err := rows.Scan(&s.ID, &s.UserID, &s.Name, &academicYear, &s.IsActive, &s.CreatedAt, &s.UpdatedAt); err != nil {
 			return nil, err
 		}
 		if academicYear.Valid {
@@ -715,7 +714,7 @@ func (r *scheduleRepository) GetAllSchedules(ctx context.Context) ([]models.Sche
 }
 
 // CreateSchedule creates a new named schedule and its associated slots/lessons
-func (r *scheduleRepository) CreateSchedule(ctx context.Context, schedule models.Schedule, slots []models.ScheduleSlotInput) (*models.Schedule, error) {
+func (r *scheduleRepository) CreateSchedule(ctx context.Context, userID uuid.UUID, schedule models.Schedule, slots []models.ScheduleSlotInput) (*models.Schedule, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -729,10 +728,10 @@ func (r *scheduleRepository) CreateSchedule(ctx context.Context, schedule models
 	// 1. Insert into schedules table
 	var newID uuid.UUID
 	err = tx.QueryRowContext(ctx, `
-		INSERT INTO schedules (name, academic_year, is_active)
-		VALUES ($1, $2, $3)
+		INSERT INTO schedules (user_id, name, academic_year, is_active)
+		VALUES ($1, $2, $3, $4)
 		RETURNING id
-	`, schedule.Name, schedule.AcademicYear, schedule.IsActive).Scan(&newID)
+	`, userID, schedule.Name, schedule.AcademicYear, schedule.IsActive).Scan(&newID)
 	if err != nil {
 		return nil, err
 	}

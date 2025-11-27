@@ -82,7 +82,15 @@ func (h *ScheduleHandler) UpdateScheduleForTeacher(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	allSchedules, err := h.service.GetAllSchedules(ctx)
+	// Get userID from context
+	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	userUUID := uuid.MustParse(userID)
+
+	allSchedules, err := h.service.GetAllSchedules(ctx, userUUID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to identify schedule to update", "details": err.Error()})
 		return
@@ -98,7 +106,7 @@ func (h *ScheduleHandler) UpdateScheduleForTeacher(c *gin.Context) {
 
 	if activeScheduleID == uuid.Nil {
 		newSchedule := models.Schedule{Name: "Расписание", IsActive: true}
-		created, err := h.service.CreateSchedule(ctx, newSchedule, nil)
+		created, err := h.service.CreateSchedule(ctx, userUUID, newSchedule, nil)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create initial schedule", "details": err.Error()})
 			return
@@ -173,13 +181,21 @@ func (h *ScheduleHandler) CreateSchedule(c *gin.Context) {
 		return
 	}
 
+	// Get userID from context
+	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	userUUID := uuid.MustParse(userID)
+
 	ctx := c.Request.Context()
 	newSchedule := models.Schedule{
 		Name: req.Name,
 		// Set other fields as necessary, e.g., IsActive, AcademicYear from context/body
 		IsActive: false, // Usually not active when created
 	}
-	created, err := h.service.CreateSchedule(ctx, newSchedule, req.ScheduleSlots)
+	created, err := h.service.CreateSchedule(ctx, userUUID, newSchedule, req.ScheduleSlots)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create schedule", "details": err.Error()})
 		return
