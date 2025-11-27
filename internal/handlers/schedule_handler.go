@@ -48,23 +48,23 @@ func (h *ScheduleHandler) UpdateScheduleForTeacher(c *gin.Context) {
 	}
 
 	dayMap := map[string]int{
-		"MONDAY":    1,
-		"TUESDAY":   2,
-		"WEDNESDAY": 3,
-		"THURSDAY":  4,
-		"FRIDAY":    5,
-		"SATURDAY":  6,
+		"monday":    1,
+		"tuesday":   2,
+		"wednesday": 3,
+		"thursday":  4,
+		"friday":    5,
+		"saturday":  6,
 	}
 
 	for i := range payload.Data {
-		day := strings.ToUpper(payload.Data[i].DayOfWeek)
+		day := strings.ToLower(payload.Data[i].DayOfWeek)
 
 		val, ok := dayMap[day]
 		if !ok {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error":   "invalid day_of_week",
 				"value":   payload.Data[i].DayOfWeek,
-				"allowed": []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"},
+				"allowed": []string{"monday", "tuesday", "wednesday", "thursday", "friday", "saturday"},
 			})
 			return
 		}
