@@ -11,7 +11,7 @@ import (
 
 type ScheduleRepository interface {
 	// GetScheduleForTeacher loads the schedule for a specific teacher
-	GetScheduleForTeacher(ctx context.Context, teacherID uuid.UUID) ([]models.ScheduleDay, error)
+	GetSchedule(ctx context.Context, teacherID uuid.UUID) ([]models.ScheduleDay, error)
 	// GetScheduleByID loads a specific named schedule by its ID
 	GetScheduleByID(ctx context.Context, scheduleID uuid.UUID) (*models.Schedule, error)
 	// GetAllSchedules loads all named schedules
@@ -35,7 +35,7 @@ func NewScheduleRepository(db *sql.DB) ScheduleRepository {
 }
 
 // GetScheduleForTeacher loads the schedule for a specific teacher
-func (r *scheduleRepository) GetScheduleForTeacher(ctx context.Context, teacherID uuid.UUID) ([]models.ScheduleDay, error) {
+func (r *scheduleRepository) GetSchedule(ctx context.Context, teacherID uuid.UUID) ([]models.ScheduleDay, error) {
 	const q = `
 		SELECT 
 			ss.day_of_week,

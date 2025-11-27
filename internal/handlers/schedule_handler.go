@@ -18,17 +18,16 @@ func NewScheduleHandler(service services.ScheduleService) *ScheduleHandler {
 	return &ScheduleHandler{service: service}
 }
 
-// GetScheduleForTeacher implements ep: GET /schedule
-// Assumes teacher ID is available in the context from middleware.
-func (h *ScheduleHandler) GetScheduleForTeacher(c *gin.Context) {
-	teacherID, exists := c.Get("teacherID")
-	if !exists {
+// GetSchedule implements ep: GET /schedule
+func (h *ScheduleHandler) GetSchedule(c *gin.Context) {
+	userID := c.GetString("userID")
+	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
 	ctx := c.Request.Context()
-	schedule, err := h.service.GetScheduleForTeacher(ctx, teacherID.(uuid.UUID))
+	schedule, err := h.service.GetSchedule(ctx, uuid.MustParse(userID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load schedule", "details": err.Error()})
 		return
@@ -38,7 +37,6 @@ func (h *ScheduleHandler) GetScheduleForTeacher(c *gin.Context) {
 }
 
 // UpdateScheduleForTeacher implements ep: PUT /schedule
-// Assumes the ID of the schedule to update is determined by the service (e.g., active schedule).
 func (h *ScheduleHandler) UpdateScheduleForTeacher(c *gin.Context) {
 	var payload struct {
 		Data []models.ScheduleSlotInput `json:"data"`
@@ -63,11 +61,11 @@ func (h *ScheduleHandler) UpdateScheduleForTeacher(c *gin.Context) {
 			break
 		}
 	}
-	
+
 	// If no active schedule exists, create one
 	if activeScheduleID == uuid.Nil {
 		newSchedule := models.Schedule{
-			Name:     "Расписание 2024-2025",
+			Name:     "Расписание",
 			IsActive: true,
 		}
 		created, err := h.service.CreateSchedule(ctx, newSchedule, nil)
@@ -85,7 +83,7 @@ func (h *ScheduleHandler) UpdateScheduleForTeacher(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Расписание успешно сохранено"})
+	c.JSON(http.StatusOK, gin.H{"message": "Schedule successfully saved"})
 }
 
 // GenerateSchedule implements ep: POST /schedule/generate
@@ -102,7 +100,7 @@ func (h *ScheduleHandler) GenerateSchedule(c *gin.Context) {
 	if err != nil {
 		// Could return a 400 with conflict details if generation fails due to constraints
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":  "Невозможно сгенерировать расписание",
+			"error":  "Unable to generate schedule",
 			"reason": err.Error(), // Or a more generic message
 		})
 		return

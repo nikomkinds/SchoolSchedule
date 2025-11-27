@@ -10,7 +10,7 @@ import (
 
 type ScheduleService interface {
 	// GetScheduleForTeacher loads the schedule for a specific teacher
-	GetScheduleForTeacher(ctx context.Context, teacherID uuid.UUID) ([]models.ScheduleDay, error)
+	GetSchedule(ctx context.Context, teacherID uuid.UUID) ([]models.ScheduleDay, error)
 	// GetScheduleByID loads a specific named schedule by its ID
 	GetScheduleByID(ctx context.Context, scheduleID uuid.UUID) (*models.Schedule, error)
 	// GetAllSchedules loads all named schedules
@@ -33,8 +33,8 @@ func NewScheduleService(repo repositories.ScheduleRepository) ScheduleService {
 	return &scheduleService{repo: repo}
 }
 
-func (s *scheduleService) GetScheduleForTeacher(ctx context.Context, teacherID uuid.UUID) ([]models.ScheduleDay, error) {
-	return s.repo.GetScheduleForTeacher(ctx, teacherID)
+func (s *scheduleService) GetSchedule(ctx context.Context, teacherID uuid.UUID) ([]models.ScheduleDay, error) {
+	return s.repo.GetSchedule(ctx, teacherID)
 }
 
 func (s *scheduleService) GetScheduleByID(ctx context.Context, scheduleID uuid.UUID) (*models.Schedule, error) {

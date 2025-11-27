@@ -101,9 +101,8 @@ func main() {
 	classes.PUT("/bulk", classHandler.BulkUpdate)
 
 	// ---------- SCHEDULE ----------
-	schedule := api.Group("/schedule")
-	schedule.Use(utils.AuthMiddlewareWithTeacher(cfg.JWTSecret, db))
-	schedule.GET("", scheduleHandler.GetScheduleForTeacher)
+	schedule := protected.Group("/schedule")
+	schedule.GET("", scheduleHandler.GetSchedule)
 	schedule.PUT("", scheduleHandler.UpdateScheduleForTeacher)
 	schedule.POST("/generate", scheduleHandler.GenerateSchedule)
 	schedule.GET("/:id", scheduleHandler.GetScheduleByID)
