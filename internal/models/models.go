@@ -210,6 +210,7 @@ type ScheduleDay struct {
 // ScheduleSlotInput represents input for creating/updating schedule
 type ScheduleSlotInput struct {
 	DayOfWeek    string        `json:"dayOfWeek"`
+	DayOfWeekInt int           `json:"-"`
 	LessonNumber int           `json:"lessonNumber"`
 	Lessons      []LessonInput `json:"lessons"`
 }

@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -46,14 +47,39 @@ func (h *ScheduleHandler) UpdateScheduleForTeacher(c *gin.Context) {
 		return
 	}
 
+	dayMap := map[string]int{
+		"MONDAY":    1,
+		"TUESDAY":   2,
+		"WEDNESDAY": 3,
+		"THURSDAY":  4,
+		"FRIDAY":    5,
+		"SATURDAY":  6,
+	}
+
+	for i := range payload.Data {
+		day := strings.ToUpper(payload.Data[i].DayOfWeek)
+
+		val, ok := dayMap[day]
+		if !ok {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   "invalid day_of_week",
+				"value":   payload.Data[i].DayOfWeek,
+				"allowed": []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"},
+			})
+			return
+		}
+
+		payload.Data[i].DayOfWeekInt = val
+	}
+
 	ctx := c.Request.Context()
 
-	// Find the active schedule ID to update
 	allSchedules, err := h.service.GetAllSchedules(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to identify schedule to update", "details": err.Error()})
 		return
 	}
+
 	var activeScheduleID uuid.UUID
 	for _, s := range allSchedules {
 		if s.IsActive {
@@ -62,12 +88,8 @@ func (h *ScheduleHandler) UpdateScheduleForTeacher(c *gin.Context) {
 		}
 	}
 
-	// If no active schedule exists, create one
 	if activeScheduleID == uuid.Nil {
-		newSchedule := models.Schedule{
-			Name:     "Расписание",
-			IsActive: true,
-		}
+		newSchedule := models.Schedule{Name: "Расписание", IsActive: true}
 		created, err := h.service.CreateSchedule(ctx, newSchedule, nil)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create initial schedule", "details": err.Error()})
@@ -76,9 +98,8 @@ func (h *ScheduleHandler) UpdateScheduleForTeacher(c *gin.Context) {
 		activeScheduleID = created.ID
 	}
 
-	err = h.service.UpdateSchedule(ctx, activeScheduleID, nil, payload.Data) // nil name means don't update name
+	err = h.service.UpdateSchedule(ctx, activeScheduleID, nil, payload.Data)
 	if err != nil {
-		// Check for specific conflict errors if needed, based on repo logic
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update schedule", "details": err.Error()})
 		return
 	}
