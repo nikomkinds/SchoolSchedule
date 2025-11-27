@@ -42,14 +42,13 @@ func AuthMiddleware(secret string) gin.HandlerFunc {
 	}
 }
 
-// AuthMiddlewareWithTeacher extends AuthMiddleware to also fetch teacherID from DB
+// AuthMiddlewareWithTeacher extends AuthMiddleware to also fetch teacherID
 func AuthMiddlewareWithTeacher(secret string, db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// First validate token
+		// 1) Validate access token
 		accessToken, err := c.Cookie("access-token")
 		if err != nil || accessToken == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing access token"})
-			c.Abort()
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing access token"})
 			return
 		}
 
@@ -59,25 +58,24 @@ func AuthMiddlewareWithTeacher(secret string, db *sql.DB) gin.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
-			c.Abort()
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 			return
 		}
 
-		// Save user info
+		// 2) Save user info
 		c.Set("userID", claims.UserID)
 		c.Set("email", claims.Email)
 		c.Set("role", claims.Role)
 
-		// Lookup teacherID from database
+		// 3) Teacher restriction: user MUST be a teacher
 		var teacherID uuid.UUID
-		query := `SELECT id FROM teachers WHERE user_id = $1`
-		err = db.QueryRow(query, claims.UserID).Scan(&teacherID)
-		if err == nil {
-			c.Set("teacherID", teacherID)
+		err = db.QueryRow(`SELECT id FROM teachers WHERE user_id = $1`, claims.UserID).Scan(&teacherID)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access restricted to teachers only"})
+			return
 		}
-		// If teacher not found, continue without teacherID (handler will check)
 
+		c.Set("teacherID", teacherID)
 		c.Next()
 	}
 }
